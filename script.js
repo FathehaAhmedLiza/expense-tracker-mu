@@ -1,95 +1,107 @@
 class ExpenseTracker {
-    constructor() {
-      // UI Elements
-      this.balance = document.getElementById("balance");
-      this.money_plus = document.getElementById("money-plus");
-      this.money_minus = document.getElementById("money-minus");
-      this.list = document.getElementById("list");
-      this.form = document.getElementById("form");
-      this.text = document.getElementById("text");
-      this.amount = document.getElementById("amount");
-      this.transactionTypeInputs = document.getElementsByName("transactionType");
-      this.categorySelect = document.getElementById("category");
-  
-      // Data from localStorage
-      this.transactions = JSON.parse(localStorage.getItem("transactions")) || [];
-  
-      // Event Listener for form submission
-      this.form.addEventListener("submit", this.addTransaction.bind(this));
-  
-      // Initialize app
-      this.init();
-    }
-  
-    init() {
-      this.list.innerHTML = '';
-      this.transactions.forEach(this.addTransactionDOM.bind(this));
-      this.updateValues();
-    }
-  
-    addTransaction(e) {
-      e.preventDefault();
-  
-      const text = this.text.value.trim();
-      const amount = parseFloat(this.amount.value);
-      const type = this.getSelectedTransactionType();
-      const category = this.categorySelect.value;
-  
-      if (text === "" || isNaN(amount)) {
-        alert("Please enter valid text and amount.");
-        return;
-      }
-  
-      const transaction = {
-        id: Date.now(),
-        text,
-        amount: type === "expense" ? -amount : amount,
-        category
-      };
-  
-      this.transactions.push(transaction);
-      this.addTransactionDOM(transaction);
-      this.updateValues();
-      this.updateLocalStorage();
-    }
-  
-    addTransactionDOM(transaction) {
-      const item = document.createElement("li");
-      item.classList.add(transaction.amount < 0 ? "minus" : "plus");
-      item.innerHTML = `${transaction.text} <span>${transaction.amount < 0 ? "-" : "+"}$${Math.abs(transaction.amount).toFixed(2)}</span> <span class="category">${transaction.category}</span><button class="delete-btn" onclick="tracker.removeTransaction(${transaction.id})">x</button>`;
-      this.list.appendChild(item);
-    }
-  
-    removeTransaction(id) {
-      this.transactions = this.transactions.filter(t => t.id !== id);
-      this.updateLocalStorage();
-      this.updateValues();
-      this.init();
-    }
-  
-    getSelectedTransactionType() {
-      for (const input of this.transactionTypeInputs) {
-        if (input.checked) return input.value;
-      }
-      return "expense"; // Default to "expense"
-    }
-  
-    updateValues() {
-      const amounts = this.transactions.map(t => t.amount);
-      const total = amounts.reduce((acc, item) => acc + item, 0).toFixed(2);
-      const income = amounts.filter(item => item > 0).reduce((acc, item) => acc + item, 0).toFixed(2);
-      const expense = (amounts.filter(item => item < 0).reduce((acc, item) => acc + item, 0) * -1).toFixed(2);
-  
-      this.balance.textContent = `$${total}`;
-      this.money_plus.textContent = `+$${income}`;
-      this.money_minus.textContent = `-$${expense}`;
-    }
-  
-    updateLocalStorage() {
-      localStorage.setItem("transactions", JSON.stringify(this.transactions));
-    }
+  constructor() {
+    // UI Elements
+    this.$balance = $("#balance");
+    this.$money_plus = $("#money-plus");
+    this.$money_minus = $("#money-minus");
+    this.$list = $("#list");
+    this.$form = $("#form");
+    this.$text = $("#text");
+    this.$amount = $("#amount");
+    this.$transactionTypeInputs = $("input[name='transactionType']");
+    this.$categorySelect = $("#category");
+
+    // Load transactions from localStorage
+    this.transactions = JSON.parse(localStorage.getItem("transactions")) || [];
+
+    // Event Listener
+    this.$form.on("submit", this.addTransaction.bind(this));
+
+    // Initialize
+    this.init();
   }
-  
-  // Initialize the app
-  const tracker = new ExpenseTracker();
-  
+
+  init() {
+    this.$list.empty();
+    this.transactions.forEach(this.addTransactionDOM.bind(this));
+    this.updateValues();
+  }
+
+  addTransaction(e) {
+    e.preventDefault();
+
+    const text = this.$text.val().trim();
+    const amount = parseFloat(this.$amount.val());
+    const type = this.getSelectedTransactionType();
+    const category = this.$categorySelect.val();
+
+    if (text === "" || isNaN(amount)) {
+      alert("Please enter valid text and amount.");
+      return;
+    }
+
+    const transaction = {
+      id: Date.now(),
+      text,
+      amount: type === "expense" ? -amount : amount,
+      category
+    };
+
+    this.transactions.push(transaction);
+    this.addTransactionDOM(transaction);
+    this.updateValues();
+    this.updateLocalStorage();
+
+    // Clear form
+    this.$text.val("");
+    this.$amount.val("");
+  }
+
+  addTransactionDOM(transaction) {
+    const sign = transaction.amount < 0 ? "-" : "+";
+    const absAmount = Math.abs(transaction.amount).toFixed(2);
+    const liClass = transaction.amount < 0 ? "minus" : "plus";
+
+    const $item = $(`
+      <li class="${liClass}">
+        ${transaction.text}
+        <span>${sign}$${absAmount}</span>
+        <span class="category">${transaction.category}</span>
+        <button class="delete-btn" data-id="${transaction.id}">x</button>
+      </li>
+    `);
+
+    $item.find(".delete-btn").on("click", () => this.removeTransaction(transaction.id));
+    this.$list.append($item);
+  }
+
+  removeTransaction(id) {
+    this.transactions = this.transactions.filter(t => t.id !== id);
+    this.updateLocalStorage();
+    this.init();
+  }
+
+  getSelectedTransactionType() {
+    return this.$transactionTypeInputs.filter(":checked").val() || "expense";
+  }
+
+  updateValues() {
+    const amounts = this.transactions.map(t => t.amount);
+    const total = amounts.reduce((acc, item) => acc + item, 0).toFixed(2);
+    const income = amounts.filter(item => item > 0).reduce((acc, item) => acc + item, 0).toFixed(2);
+    const expense = Math.abs(amounts.filter(item => item < 0).reduce((acc, item) => acc + item, 0)).toFixed(2);
+
+    this.$balance.text(`$${total}`);
+    this.$money_plus.text(`+$${income}`);
+    this.$money_minus.text(`-$${expense}`);
+  }
+
+  updateLocalStorage() {
+    localStorage.setItem("transactions", JSON.stringify(this.transactions));
+  }
+}
+
+// Initialize app on DOM ready
+$(document).ready(() => {
+  window.tracker = new ExpenseTracker();
+});
